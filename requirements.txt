@@ -1,4 +1,8 @@
 torch
+torchvision
 typer
+wandb
 matplotlib
 scikit-learn
+hydra-core
+omegaconf

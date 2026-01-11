@@ -1,0 +1,5 @@
+# @package _global_
+model:
+  latent_dim: 2
+training:
+  epochs: 5

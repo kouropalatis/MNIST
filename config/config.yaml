@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - model: vae
+  - optimizer: adam
+  - training: default
+  - experiment: null
+
+setup:
+  device: cpu
+  seed: 42

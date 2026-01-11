@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+# --- 1. Your Original CNN Model ---
 class MyAwesomeModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -30,3 +31,53 @@ class MyAwesomeModel(nn.Module):
         x = torch.flatten(x, 1)
         x = self.dropout(x)
         return self.fc1(x)
+
+# --- 2. VAE Components ---
+
+class Encoder(nn.Module):
+    """Gaussian MLP Encoder for VAE."""
+    def __init__(self, input_dim, hidden_dim, latent_dim):
+        super(Encoder, self).__init__()
+        self.FC_input = nn.Linear(input_dim, hidden_dim)
+        self.FC_mean  = nn.Linear(hidden_dim, latent_dim)
+        self.FC_var   = nn.Linear(hidden_dim, latent_dim)
+        self.ReLU     = nn.ReLU()
+
+    def forward(self, x):
+        h_       = self.ReLU(self.FC_input(x))
+        mean     = self.FC_mean(h_)
+        log_var  = self.FC_var(h_)
+        return mean, log_var
+
+class Decoder(nn.Module):
+    """Gaussian MLP Decoder for VAE."""
+    def __init__(self, latent_dim, hidden_dim, output_dim):
+        super(Decoder, self).__init__()
+        self.FC_hidden = nn.Linear(latent_dim, hidden_dim)
+        self.FC_output = nn.Linear(hidden_dim, output_dim)
+        self.ReLU      = nn.ReLU()
+        self.Sigmoid   = nn.Sigmoid()
+
+    def forward(self, x):
+        h     = self.ReLU(self.FC_hidden(x))
+        x_hat = self.Sigmoid(self.FC_output(h))
+        return x_hat
+
+class Model(nn.Module):
+    """Full VAE Model combining Encoder and Decoder."""
+    def __init__(self, encoder, decoder):
+        super(Model, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def reparameterization(self, mean, var):
+        """The 'Variational' trick: sampling from a distribution."""
+        epsilon = torch.randn_like(var)
+        z = mean + var * epsilon
+        return z
+
+    def forward(self, x):
+        mean, log_var = self.encoder(x)
+        z = self.reparameterization(mean, torch.exp(0.5 * log_var))
+        x_hat = self.decoder(z)
+        return x_hat, mean, log_var
