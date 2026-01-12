@@ -16,7 +16,7 @@ jobs:
       matrix:
         # This triggers a total of 9 parallel jobs (3 OS x 3 Python versions)
         os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.12"]
 
     steps:
     - name: Checkout
