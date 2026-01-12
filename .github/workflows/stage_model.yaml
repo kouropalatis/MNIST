@@ -2,7 +2,8 @@ name: Check staged model
 
 on:
   repository_dispatch:
-    types: [github_actions_dispatch]
+    # This MUST match the "event_type" value in your JSON payload
+    types: [staged_model]
 
 jobs:
   identify_event:
@@ -13,11 +14,13 @@ jobs:
       - name: Check event type
         run: |
           echo "Event type: repository_dispatch"
+          # This will show you the author and version from your instruction's payload
           echo "Payload Data: ${{ toJson(github.event.client_payload) }}"
 
       - name: Setting model environment variable and output
         id: set_output
         run: |
+          # The instructions include this exact key in the client_payload
           MODEL_NAME="${{ github.event.client_payload.artifact_version_string }}"
           echo "model_name=$MODEL_NAME" >> $GITHUB_OUTPUT
 
