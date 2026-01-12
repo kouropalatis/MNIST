@@ -22,8 +22,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install ruff mypy
-        pip install -r requirements.txt 
+        pip install -r requirements.txt
+        pip install -r requirements_dev.txt
+        pip install mypy 
 
     - name: Ruff check
       # Ruff is extremely fast and catches common errors
