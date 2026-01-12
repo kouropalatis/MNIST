@@ -1,27 +1,31 @@
-import matplotlib.pyplot as plt
+import os
 import torch
 import typer
 import wandb
-import os
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+
+# Ensure these imports match your folder structure exactly
 from mnist.data import corrupt_mnist
 from mnist.model import MyAwesomeModel
-from sklearn.metrics import RocCurveDisplay, accuracy_score, f1_score, precision_score, recall_score
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
-    """Train a model on MNIST and log it as a W&B Artifact."""
-    print(f"Training on {DEVICE}")
-    
-    # 1. Start the run
-    run = wandb.init(
-        project="corrupt_mnist",
-        config={"lr": lr, "batch_size": batch_size, "epochs": epochs},
-    )
+    run = wandb.init(project="corrupt_mnist")
+
+    # Access the hyphenated key from the W&B config
+    lr = wandb.config.lr
+    batch_size = wandb.config["batch-size"]  # Match the new YAML key
+    epochs = wandb.config.epochs
+
+    print(f"Training on {DEVICE} | LR: {lr} | Batch Size: {batch_size}")
 
     model = MyAwesomeModel().to(DEVICE)
     train_set, _ = corrupt_mnist()
-    train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    train_dataloader = torch.utils.data.DataLoader(
+        train_set, batch_size=batch_size, shuffle=True
+    )
 
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -38,7 +42,7 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
             loss.backward()
             optimizer.step()
             
-            # Simple scalar logging
+            # Log step-level metrics
             acc = (y_pred.argmax(dim=1) == target).float().mean().item()
             wandb.log({"train/loss": loss.item(), "train/accuracy": acc})
 
@@ -47,29 +51,32 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
 
             if i % 100 == 0:
                 print(f"Epoch {epoch}, iter {i}, loss: {loss.item():.4f}")
-                # Log sample images and gradients
+                
+                # FIX: Convert the batch tensor into a list of individual images
+                images = [wandb.Image(im.cpu()) for im in img[:5]]
+                
                 wandb.log({
-                    "media/images": wandb.Image(img[:5].detach().cpu(), caption="Input images"),
+                    "media/images": images,
                     "media/gradients": wandb.Histogram(
                         torch.cat([p.grad.flatten() for p in model.parameters() if p.grad is not None]).cpu()
                     )
                 })
 
-        # 2. Log ROC Curves at end of epoch
-        preds = torch.cat(preds, 0)
-        targets = torch.cat(targets, 0)
-        
-        # (ROC Curve logic removed for brevity but keep it in your local file)
-        # wandb.log({"media/roc": wandb.Image(plt)})
+        # Process epoch-level targets for metrics
+        epoch_preds = torch.cat(preds, 0)
+        epoch_targets = torch.cat(targets, 0)
+        preds_labels = epoch_preds.argmax(dim=1)
 
-    # 3. Calculate Final Performance Metrics
-    preds_labels = preds.argmax(dim=1)
-    metrics = {
-        "accuracy": accuracy_score(targets, preds_labels),
-        "precision": precision_score(targets, preds_labels, average="weighted"),
-        "recall": recall_score(targets, preds_labels, average="weighted"),
-        "f1": f1_score(targets, preds_labels, average="weighted"),
-    }
+        # 3. Calculate Metrics
+        metrics = {
+            "accuracy": accuracy_score(epoch_targets, preds_labels),
+            "precision": precision_score(epoch_targets, preds_labels, average="weighted"),
+            "recall": recall_score(epoch_targets, preds_labels, average="weighted"),
+            "f1": f1_score(epoch_targets, preds_labels, average="weighted"),
+        }
+        
+        # Log summary metrics for the Sweep to track
+        wandb.log(metrics)
 
     # 4. Save and Log Model Artifact
     os.makedirs("models", exist_ok=True)
@@ -80,12 +87,19 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
         name="corrupt_mnist_model",
         type="model",
         description="CNN trained on corrupt MNIST",
-        metadata=metrics  # Attach metrics directly to the artifact!
+        metadata=metrics
     )
     artifact.add_file(model_path)
     run.log_artifact(artifact)
-    
-    print(f"Model logged to W&B as an artifact with metrics: {metrics}")
+
+    # This automatically adds the model to your collection
+    run.link_artifact(
+        artifact=artifact,
+        target_path="wandb-registry-Mnist_models/corrupt_mnist_models",
+        aliases=["latest"]
+    )
+        
+    print(f"Model logged and linked to registry with metrics: {metrics}")
     run.finish()
 
 if __name__ == "__main__":

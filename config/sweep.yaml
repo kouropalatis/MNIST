@@ -1,0 +1,23 @@
+# config/sweep.yaml
+program: src/mnist/train.py
+name: sweep_mnist_demo
+project: corrupt_mnist
+method: random
+metric:
+  goal: maximize
+  name: accuracy
+parameters:
+  lr:
+    min: 0.0001
+    max: 0.1
+    distribution: log_uniform_values
+  batch-size:                 # Changed from batch_size to batch-size
+    values: [16, 32, 64]
+  epochs:
+    values: [5, 10]
+run_cap: 10
+
+command:
+  - ${interpreter}
+  - ${program}
+  - ${args}
