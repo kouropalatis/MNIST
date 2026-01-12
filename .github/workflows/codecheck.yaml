@@ -1,0 +1,41 @@
+name: "Run linting"
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.12
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install ruff mypy
+        pip install -r requirements.txt 
+
+    - name: Ruff check
+      # Ruff is extremely fast and catches common errors
+      run: ruff check .
+
+    - name: Ruff format
+      # We use --check to ensure the developer ran formatting locally
+      run: ruff format --check .
+
+    - name: Mypy type check
+      # --ignore-missing-imports is the 'secret sauce' to get Mypy passing 
+      # when third-party ML libs don't have type stubs
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/src
+        mypy src --ignore-missing-imports --install-types --non-interactive
