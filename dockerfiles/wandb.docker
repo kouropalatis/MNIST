@@ -4,6 +4,6 @@ RUN apt update && \
     apt clean && rm -rf /var/lib/apt/lists/*
 RUN pip install wandb
 
-COPY tests/wandb_tester.py wandb_tester.py
+COPY dockerfiles/wandb_tester.py wandb_tester.py
 
 ENTRYPOINT ["python", "-u", "wandb_tester.py"]
