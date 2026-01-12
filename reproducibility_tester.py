@@ -1,5 +1,7 @@
 import sys
+
 import torch
+
 from mnist.model import Decoder, Encoder, Model
 
 torch.serialization.add_safe_globals([Model, Encoder, Decoder])
@@ -24,5 +26,5 @@ if __name__ == "__main__":
         if not torch.allclose(p1, p2):
             msg = "encountered a difference in parameters, your script is not fully reproducible"
             raise RuntimeError(msg)
-            
+
     print("✅ Success! The models are identical. Your script is fully reproducible.")

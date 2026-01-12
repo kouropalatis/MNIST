@@ -25,11 +25,36 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.dynamic.optional-dependencies]
 dev = {file = ['requirements_dev.txt']}
 
+# --- Ruff Configuration ---
 [tool.ruff]
 line-length = 120
+target-version = "py312"
 
 [tool.ruff.lint]
-select = ["I", "N", "E", "W", ]
+# Added F (Pyflakes) for error detection and I (Isort) for import sorting
+select = ["I", "N", "E", "W", "F"]
+# Ignore N806 to allow uppercase variables inside functions like DEVICE
+ignore = ["N806"]
 
+[tool.ruff.lint.isort]
+# Ensure ruff recognizes 'mnist' and 'tests' as local modules
+known-first-party = ["mnist", "tests"]
+
+# --- Mypy Configuration ---
+[tool.mypy]
+python_version = "3.12"
+# Crucial for MLOps projects with complex dependencies
+ignore_missing_imports = true
+check_untyped_defs = true
+# Ensures mypy looks into your src directory correctly
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# Disable strict checking for libraries with complex typing
+module = ["torch.*", "wandb.*", "sklearn.*", "matplotlib.*"]
+ignore_errors = true
+
+# --- Coverage Configuration ---
 [tool.coverage.run]
-omit = ["tests/*"]
+source = ["src"]
+omit = ["tests/*", "**/__init__.py"]

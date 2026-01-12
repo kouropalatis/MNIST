@@ -9,15 +9,17 @@ def normalize(images: torch.Tensor) -> torch.Tensor:
 
 def preprocess_data(raw_dir: str, processed_dir: str) -> None:
     """Process raw data and save it to processed directory."""
-    train_images, train_target = [], []
+    # Renamed to avoid Incompatible types in assignment
+    train_images_list, train_target_list = [], []
     for i in range(6):
-        train_images.append(torch.load(f"{raw_dir}/train_images_{i}.pt"))
-        train_target.append(torch.load(f"{raw_dir}/train_target_{i}.pt"))
-    train_images = torch.cat(train_images)
-    train_target = torch.cat(train_target)
+        train_images_list.append(torch.load(f"{raw_dir}/train_images_{i}.pt", weights_only=True))
+        train_target_list.append(torch.load(f"{raw_dir}/train_target_{i}.pt", weights_only=True))
 
-    test_images: torch.Tensor = torch.load(f"{raw_dir}/test_images.pt")
-    test_target: torch.Tensor = torch.load(f"{raw_dir}/test_target.pt")
+    train_images = torch.cat(train_images_list)
+    train_target = torch.cat(train_target_list)
+
+    test_images: torch.Tensor = torch.load(f"{raw_dir}/test_images.pt", weights_only=True)
+    test_target: torch.Tensor = torch.load(f"{raw_dir}/test_target.pt", weights_only=True)
 
     train_images = train_images.unsqueeze(1).float()
     test_images = test_images.unsqueeze(1).float()
@@ -35,10 +37,10 @@ def preprocess_data(raw_dir: str, processed_dir: str) -> None:
 
 def corrupt_mnist() -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
     """Return train and test datasets for corrupt MNIST."""
-    train_images = torch.load("data/processed/train_images.pt")
-    train_target = torch.load("data/processed/train_target.pt")
-    test_images = torch.load("data/processed/test_images.pt")
-    test_target = torch.load("data/processed/test_target.pt")
+    train_images = torch.load("data/processed/train_images.pt", weights_only=True)
+    train_target = torch.load("data/processed/train_target.pt", weights_only=True)
+    test_images = torch.load("data/processed/test_images.pt", weights_only=True)
+    test_target = torch.load("data/processed/test_target.pt", weights_only=True)
 
     train_set = torch.utils.data.TensorDataset(train_images, train_target)
     test_set = torch.utils.data.TensorDataset(test_images, test_target)

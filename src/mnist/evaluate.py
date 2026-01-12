@@ -1,13 +1,22 @@
+import os
+
 import torch
 import typer
+
 import wandb
-import os
 from mnist.data import corrupt_mnist
 from mnist.model import MyAwesomeModel
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def evaluate(registry_path: str = "s250269-danmarks-tekniske-universitet-dtu/wandb-registry-Mnist_models/corrupt_mnist_models:latest") -> None:
+# Fix for E501: Move long string to a constant to keep function signature short
+DEFAULT_REGISTRY = (
+    "s250269-danmarks-tekniske-universitet-dtu/"
+    "wandb-registry-Mnist_models/corrupt_mnist_models:latest"
+)
+
+
+def evaluate(registry_path: str = DEFAULT_REGISTRY) -> None:
     """Evaluate a model directly from the W&B Model Registry."""
     print(f"Fetching model from registry: {registry_path}")
 
@@ -22,10 +31,13 @@ def evaluate(registry_path: str = "s250269-danmarks-tekniske-universitet-dtu/wan
         print(f"Error fetching artifact: {e}")
         return
 
-    # 2. Load the model as before
+    # 2. Load the model safely
     print(f"Loading checkpoint from: {model_checkpoint}")
     model = MyAwesomeModel().to(DEVICE)
-    model.load_state_dict(torch.load(model_checkpoint, map_location=DEVICE))
+
+    # Use weights_only=True for security best practices in newer Torch versions
+    state_dict = torch.load(model_checkpoint, map_location=DEVICE, weights_only=True)
+    model.load_state_dict(state_dict)
     model.eval()
 
     # 3. Data loading and evaluation loop
@@ -39,9 +51,10 @@ def evaluate(registry_path: str = "s250269-danmarks-tekniske-universitet-dtu/wan
             y_pred = model(img)
             correct += (y_pred.argmax(dim=1) == target).float().sum().item()
             total += target.size(0)
-    
+
     accuracy = correct / total
     print(f"Test accuracy: {accuracy:.4f}")
+
 
 if __name__ == "__main__":
     typer.run(evaluate)
