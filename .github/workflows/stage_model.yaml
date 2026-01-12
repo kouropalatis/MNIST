@@ -30,8 +30,8 @@ jobs:
       WANDB_ENTITY: ${{ secrets.WANDB_ENTITY }}
       WANDB_PROJECT: ${{ secrets.WANDB_PROJECT }}
       MODEL_NAME: ${{ needs.identify_event.outputs.model_name }}
-      # FIX: Adds repo root to PYTHONPATH so 'import mnist' works
-      PYTHONPATH: ${{ github.workspace }}
+      # FIX: Adds the 'src' folder to search path so 'import mnist' works
+      PYTHONPATH: ${{ github.workspace }}/src
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -47,11 +47,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest wandb torch
-          # Alternative FIX: Install local project as an editable package
-          # pip install -e . 
 
       - name: Test model
-        run: pytest tests/performancetests/test_model.py
+        # Use 'python -m pytest' to help with path resolution
+        run: python -m pytest tests/performancetests/test_model.py
 
   add_production_alias:
     runs-on: ubuntu-latest
@@ -61,8 +60,8 @@ jobs:
       WANDB_ENTITY: ${{ secrets.WANDB_ENTITY }}
       WANDB_PROJECT: ${{ secrets.WANDB_PROJECT }}
       MODEL_NAME: ${{ needs.identify_event.outputs.model_name }}
-      # Ensure path is available here too if your script imports 'mnist'
-      PYTHONPATH: ${{ github.workspace }}
+      # Path needed here as well for script execution
+      PYTHONPATH: ${{ github.workspace }}/src
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
