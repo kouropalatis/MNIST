@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-# --- 1. Your Original CNN Model ---
+# --- 1. Your Original CNN Model with Input Validation ---
 class MyAwesomeModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -19,6 +19,14 @@ class MyAwesomeModel(nn.Module):
         self.fc1 = nn.Linear(128, 10)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # --- NEW: Defensive Input Validation ---
+        if x.ndim != 4:
+            raise ValueError(f"Expected input to be a 4D tensor (batch, channel, h, w), but got {x.ndim}D")
+        
+        if x.shape[1:] != (1, 28, 28):
+            raise ValueError(f"Expected each sample to have shape [1, 28, 28], but got {list(x.shape[1:])}")
+        # ---------------------------------------
+
         x = torch.relu(self.bn1(self.conv1(x))) # BN before activation
         x = torch.max_pool2d(x, 2, 2)
         
@@ -55,7 +63,7 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.FC_hidden = nn.Linear(latent_dim, hidden_dim)
         self.FC_output = nn.Linear(hidden_dim, output_dim)
-        self.ReLU      = nn.ReLU()
+        self.ReLU       = nn.ReLU()
         self.Sigmoid   = nn.Sigmoid()
 
     def forward(self, x):
