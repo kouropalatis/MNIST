@@ -50,7 +50,12 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
 
                 # Convert gradient tensor to numpy for Histogram
                 grads = torch.cat([p.grad.flatten() for p in model.parameters() if p.grad is not None])
-                wandb.log({"media/images": images, "media/gradients": wandb.Histogram(grads.cpu().numpy().tolist()),})
+                wandb.log(
+                    {
+                        "media/images": images,
+                        "media/gradients": wandb.Histogram(grads.cpu().numpy().tolist()),
+                    }
+                )
 
         epoch_preds = torch.cat(preds_list, 0)
         epoch_targets = torch.cat(targets_list, 0)

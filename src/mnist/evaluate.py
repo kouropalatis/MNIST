@@ -10,10 +10,7 @@ from mnist.model import MyAwesomeModel
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Fix for E501: Move long string to a constant to keep function signature short
-DEFAULT_REGISTRY = (
-    "s250269-danmarks-tekniske-universitet-dtu/"
-    "wandb-registry-Mnist_models/corrupt_mnist_models:latest"
-)
+DEFAULT_REGISTRY = "s250269-danmarks-tekniske-universitet-dtu/wandb-registry-Mnist_models/corrupt_mnist_models:latest"
 
 
 def evaluate(registry_path: str = DEFAULT_REGISTRY) -> None:
