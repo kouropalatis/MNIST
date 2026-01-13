@@ -1,10 +1,13 @@
 import os
-import wandb
-import typer
 from typing import List
 
+import typer
+
+import wandb
+
+
 def link_model(
-    artifact_path: str, 
+    artifact_path: str,
     aliases: List[str] = ["production"]
 ) -> None:
     """
@@ -21,7 +24,7 @@ def link_model(
     # Initialize W&B API using environment variables
     # WANDB_API_KEY, WANDB_ENTITY, and WANDB_PROJECT must be set in your GitHub Secrets
     api = wandb.Api(api_key=os.getenv("WANDB_API_KEY"))
-    
+
     try:
         # Extract the artifact name from the provided path
         # Path format: "entity/project/artifact_name:version"
@@ -30,15 +33,15 @@ def link_model(
 
         # Fetch the artifact from W&B
         artifact = api.artifact(artifact_path)
-        
+
         # Define the target path in the Model Registry
         # Usually: "entity/model-registry/artifact_name"
         target_path = f"{os.getenv('WANDB_ENTITY')}/model-registry/{artifact_name}"
-        
+
         # Link the model and save the changes
         artifact.link(target_path=target_path, aliases=aliases)
         artifact.save()
-        
+
         typer.echo(f"✅ Success: {artifact_path} linked to {target_path} as {aliases}")
 
     except Exception as e:
