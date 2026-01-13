@@ -1,0 +1,55 @@
+steps:
+  # STEP 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Training Image'
+    args: [
+      'build', 
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest',
+      '-f', 'dummy/dummy.dockerfile', 
+      'dummy'
+    ]
+
+  # STEP 2: Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Image'
+    waitFor: ['Build Training Image']
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest']
+
+  # STEP 3: Inject Secrets
+  - name: "alpine"
+    id: "Inject Secrets"
+    waitFor: ['Push Image']
+    entrypoint: "sh"
+    args:
+      - '-c'
+      - |
+        apk add --no-cache gettext
+        # Use $$ so Cloud Build ignores these during the substitution phase
+        export WANDB_API_KEY=$$WANDB_API_KEY
+        envsubst < config.yaml > config_final.yaml
+    secretEnv: ['WANDB_API_KEY']
+
+  # STEP 4: Trigger Vertex AI
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Trigger Vertex AI'
+    waitFor: ['Inject Secrets']
+    args: [
+      'ai', 'custom-jobs', 'create',
+      '--region=${_REGION}', 
+      '--display-name=mnist-gpu-wandb-run',
+      '--config=config_final.yaml'
+    ]
+
+substitutions:
+  # This must be USED in the steps above (see Step 4)
+  _REGION: 'europe-west1'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/black-monitor-484210-s3/secrets/WANDB_API_KEY/versions/latest
+      env: 'WANDB_API_KEY'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  # This prevents the build from failing if a substitution is defined but not used
+  substitution_option: 'ALLOW_LOOSE'

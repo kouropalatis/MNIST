@@ -1,10 +1,12 @@
-defaults:
-  - _self_
-  - model: vae
-  - optimizer: adam
-  - training: default
-  - experiment: null
-
-setup:
-  device: cpu
-  seed: 42
+workerPoolSpecs:
+  - machineSpec:
+      machineType: n1-standard-4
+      acceleratorType: NVIDIA_TESLA_T4
+      acceleratorCount: 1
+    replicaCount: 1
+    containerSpec:
+      # Automatically uses the project ID of your active GCP project
+      imageUri: europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest
+      env:
+        - name: WANDB_API_KEY
+          value: $WANDB_API_KEY

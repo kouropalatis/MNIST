@@ -1,0 +1,48 @@
+steps:
+  # Step 1: Inject the secret into config.yaml
+  - name: "alpine"
+    id: "Replace values in the training config"
+    entrypoint: "sh"
+    args:
+      - '-c'
+      - |
+        apk add --no-cache gettext
+        # Use $$ for both the export and the envsubst command to hide them from Cloud Build's scanner
+        export WANDB_API_KEY=$$WANDB_API_KEY
+        envsubst '$$WANDB_API_KEY' < config.yaml > config.yaml.tmp
+        mv config.yaml.tmp config.yaml
+    secretEnv: ['WANDB_API_KEY']
+
+  # Step 2: Show config (Debugging)
+  - name: 'alpine'
+    id: "Show config"
+    waitFor: ['Replace values in the training config']
+    entrypoint: "sh"
+    args:
+      - '-c'
+      - |
+        cat config.yaml
+
+  # Step 3: Launch the Vertex AI Custom Job
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Train on vertex AI'
+    waitFor: ['Replace values in the training config']
+    args: [
+      'ai',
+      'custom-jobs',
+      'create',
+      '--region',
+      'europe-west1',
+      '--display-name',
+      'mnist-gpu-wandb-run',
+      '--config',
+      '${_VERTEX_TRAIN_CONFIG}',
+    ]
+
+substitutions:
+  _VERTEX_TRAIN_CONFIG: 'config.yaml'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/362996455372/secrets/WANDB_API_KEY/versions/latest
+      env: 'WANDB_API_KEY'
