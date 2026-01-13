@@ -6,10 +6,7 @@ import typer
 import wandb
 
 
-def link_model(
-    artifact_path: str,
-    aliases: List[str] = ["production"]
-) -> None:
+def link_model(artifact_path: str, aliases: List[str] = ["production"]) -> None:
     """
     Link a specific model artifact to the W&B model registry with a 'production' alias.
 
@@ -47,6 +44,7 @@ def link_model(
     except Exception as e:
         typer.echo(f"❌ Error linking model: {e}")
         raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     typer.run(link_model)

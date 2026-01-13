@@ -28,6 +28,7 @@ def load_model(artifact_path: str):
     model.eval()
     return model
 
+
 @pytest.mark.skipif(not os.getenv("MODEL_NAME"), reason="MODEL_NAME env var not set")
 def test_model_speed():
     """Performance test: 100 predictions must finish under 1 second."""
@@ -47,7 +48,7 @@ def test_model_speed():
 
     # Performance measurement using high-resolution counter
     start_time = time.perf_counter()
-    with torch.inference_mode(): # Faster inference by disabling gradient tracking
+    with torch.inference_mode():  # Faster inference by disabling gradient tracking
         for _ in range(100):
             _ = model(dummy_input)
     end_time = time.perf_counter()
