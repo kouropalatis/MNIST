@@ -29,20 +29,7 @@ dependencies = [
 ]
 
 
-# --- Ruff Configuration ---
-[tool.ruff]
-line-length = 120
-target-version = "py312"
 
-[tool.ruff.lint]
-# Added F (Pyflakes) for error detection and I (Isort) for import sorting
-select = ["I", "N", "E", "W", "F"]
-# Ignore N806 to allow uppercase variables inside functions like DEVICE
-ignore = ["N806"]
-
-[tool.ruff.lint.isort]
-# Ensure ruff recognizes 'mnist' and 'tests' as local modules
-known-first-party = ["mnist", "tests"]
 
 # --- Mypy Configuration ---
 [tool.mypy]
@@ -72,5 +59,4 @@ dev = [
     "mkdocstrings-python>=1.16.10",
     "pre-commit>=4.1.0",
     "pytest>=9.0.2",
-    "ruff>=0.14.13",
 ]

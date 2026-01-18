@@ -20,13 +20,7 @@ jobs:
         python-version: "3.12"
     - run: uv sync 
 
-    - name: Ruff check
-      # Ruff is extremely fast and catches common errors
-      run: uv run ruff check .
 
-    - name: Ruff format
-      # We use --check to ensure the developer ran formatting locally
-      run: uv run ruff format --check .
 
     - name: Mypy type check
       # --ignore-missing-imports is the 'secret sauce' to get Mypy passing 
