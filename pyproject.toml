@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mnist"
 version = "0.0.1"
-description = "mnist"
+description = "MNIST classification project with MLOps best practices"
 authors = [
-  { name = "kouropalatis", email = "your@email.com" },
+  { name = "kouropalatis", email = "lykostratisk@gmail.com" },
 ]
 license = { file = "LICENSE" }
 keywords = ["machine learning", "MLOps"]
