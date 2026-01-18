@@ -17,7 +17,7 @@ def link_model(artifact_path: str, aliases: List[str] = ["production"]) -> None:
     # 1. Environment Validation
     required_vars = ["WANDB_API_KEY", "WANDB_ENTITY", "WANDB_PROJECT"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
+
     if missing_vars:
         typer.echo(f"❌ Error: Missing required environment variables: {', '.join(missing_vars)}")
         raise typer.Exit(code=1)
@@ -34,8 +34,8 @@ def link_model(artifact_path: str, aliases: List[str] = ["production"]) -> None:
         # Path format: "entity/project/artifact_name:version"
         # Only split once on first colon to separate version
         if ":" not in artifact_path:
-             raise ValueError(f"Artifact path '{artifact_path}' must contain a version (e.g., :v1 or :latest)")
-             
+            raise ValueError(f"Artifact path '{artifact_path}' must contain a version (e.g., :v1 or :latest)")
+
         artifact_name_version = artifact_path.split("/")[-1]
         artifact_name = artifact_name_version.split(":")[0]
 
@@ -44,7 +44,7 @@ def link_model(artifact_path: str, aliases: List[str] = ["production"]) -> None:
         artifact = api.artifact(artifact_path)
 
         # Define the target path in the Model Registry
-        target_entity = os.getenv('WANDB_ENTITY')
+        target_entity = os.getenv("WANDB_ENTITY")
         target_path = f"{target_entity}/model-registry/{artifact_name}"
         typer.echo(f"Linking to registry path: {target_path}")
 
@@ -58,6 +58,7 @@ def link_model(artifact_path: str, aliases: List[str] = ["production"]) -> None:
         typer.echo(f"❌ Error linking model: {e}")
         # Print full exception for debugging in CI logs
         import traceback
+
         traceback.print_exc()
         raise typer.Exit(code=1)
 
