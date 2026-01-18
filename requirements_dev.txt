@@ -9,7 +9,7 @@ pytest
 coverage
 
 # linting
-ruff==0.11.6
+ruff>=0.9.0
 
 # docs
 mkdocs==1.6.1
