@@ -1,5 +1,5 @@
-# 1. Base image
-FROM python:3.12-slim
+# 1. Base image with uv
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 # 2. System dependencies
 RUN apt-get update && \
@@ -10,19 +10,18 @@ RUN apt-get update && \
 WORKDIR /app
 
 # 4. Copy blueprints
-COPY requirements.txt .
-COPY pyproject.toml .
+COPY pyproject.toml uv.lock ./
 
-# 5. Optimized PIP Install using Cache Mount
-# We remove --no-cache-dir here so it can actually USE the cache mount
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+# 5. Helper config to install into system python if desired, 
+# but sticking to uv venv is usually safer. 
+# We will just run uv sync.
+RUN uv sync --frozen --no-cache
 
 # 6. Copy the project
 COPY src/ src/
 COPY data/ data/
 
-# 7. Install the project logic
-RUN pip install . --no-deps --no-cache-dir
+# 7. Install the project logic (re-syncing to install the root project)
+RUN uv sync --frozen --no-cache
 
-ENTRYPOINT ["python", "-u", "src/mnist/evaluate.py"]
+ENTRYPOINT ["uv", "run", "python", "-u", "src/mnist/evaluate.py"]

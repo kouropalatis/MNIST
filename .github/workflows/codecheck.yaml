@@ -14,29 +14,23 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.12
-        cache: 'pip'
-
     - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install -r requirements_dev.txt
-        pip install mypy 
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: "3.12"
+    - run: uv sync 
 
     - name: Ruff check
       # Ruff is extremely fast and catches common errors
-      run: ruff check .
+      run: uv run ruff check .
 
     - name: Ruff format
       # We use --check to ensure the developer ran formatting locally
-      run: ruff format --check .
+      run: uv run ruff format --check .
 
     - name: Mypy type check
       # --ignore-missing-imports is the 'secret sauce' to get Mypy passing 
       # when third-party ML libs don't have type stubs
       run: |
         export PYTHONPATH=$PYTHONPATH:$(pwd)/src
-        mypy src --ignore-missing-imports --install-types --non-interactive
+        uv run mypy src --ignore-missing-imports --install-types --non-interactive

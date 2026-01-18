@@ -1,19 +1,25 @@
-# Base image
-FROM python:3.12-slim
+# Base image with uv pre-installed
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-RUN apt update && \
-    apt install --no-install-recommends -y build-essential gcc && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y build-essential gcc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Copy configuration
+COPY pyproject.toml uv.lock ./
 
-COPY requirements.txt requirements.txt
-COPY pyproject.toml pyproject.toml
+# Install dependencies
+RUN uv sync --frozen --no-cache
+
+# Copy project files
 COPY src/ src/
 COPY data/ data/
 
-# Set working directory
-WORKDIR /
-RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt --no-cache-dir
-RUN pip install . --no-deps --no-cache-dir
+# Install the project itself
+RUN uv sync --frozen --no-cache
 
-ENTRYPOINT ["python", "-u", "src/mnist/train.py"]
+# Set working directory
+WORKDIR /app
+
+# Run using uv
+ENTRYPOINT ["uv", "run", "python", "-u", "src/mnist/train.py"]

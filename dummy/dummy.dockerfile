@@ -1,13 +1,14 @@
-FROM python:3.11-slim
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-# install python
-RUN apt update && \
-    apt install --no-install-recommends -y build-essential gcc && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+# install dependencies
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y build-essential gcc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements.txt
-COPY main.py main.py
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-cache
+
+COPY dummy/main.py main.py
 WORKDIR /
-RUN pip install -r requirements.txt --no-cache-dir
 
-ENTRYPOINT ["python", "-u", "main.py"]
+ENTRYPOINT ["uv", "run", "python", "-u", "main.py"]
