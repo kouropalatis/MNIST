@@ -6,7 +6,7 @@ steps:
       'build', 
       '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest',
       '-f', 'dummy/dummy.dockerfile', 
-      'dummy'
+      '.'
     ]
 
   # STEP 2: Push the image
