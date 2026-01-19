@@ -38,7 +38,7 @@ steps:
         apk add --no-cache gettext
         # Use $$ so Cloud Build ignores these during the substitution phase
         export WANDB_API_KEY=$$WANDB_API_KEY
-        envsubst < config.yaml > config_final.yaml
+        envsubst < config/config.yaml > config_final.yaml
     secretEnv: ['WANDB_API_KEY']
 
   # STEP 5: Trigger Vertex AI
