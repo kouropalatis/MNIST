@@ -79,14 +79,10 @@ async def predict(file: UploadFile = File(...)):
         image = Image.open(io.BytesIO(content))
         
         # Convert to grayscale and resize to 28x28 matches training data
-        image = image.convert("L").resize((28, 28))
-        
-        # Transform to tensor [1, 1, 28, 28] and normalize
-        # Assuming training data was normalized (mean=0, std=1 approx for this demo)
-        # We simply convert to tensor here. For exact reproduction, 
-        # we should use the same transforms as data.py
+        processed_image = image.convert("L").resize((28, 28))
+    
         import torchvision.transforms.functional as F
-        tensor_img = F.to_tensor(image).unsqueeze(0).to(DEVICE)
+        tensor_img = F.to_tensor(processed_image).unsqueeze(0).to(DEVICE)
         
         # Normalize (standard approximation for MNIST)
         # Verify against your data.py if possible, but this is a safe baseline
@@ -95,7 +91,7 @@ async def predict(file: UploadFile = File(...)):
         with torch.no_grad():
             outputs = app.state.model(tensor_img)
             probabilities = torch.nn.functional.softmax(outputs, dim=1)
-            predicted_digit = torch.argmax(probabilities, dim=1).item()
+            predicted_digit = int(torch.argmax(probabilities, dim=1).item())
             confidence = probabilities[0][predicted_digit].item()
 
         return {
