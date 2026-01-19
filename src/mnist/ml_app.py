@@ -8,6 +8,9 @@ import wandb
 import os
 
 from mnist.model import MyAwesomeModel
+import cv2
+import numpy as np
+from fastapi.responses import FileResponse
 
 # Constants
 MODEL_ARTIFACT_PATH = "s250269-danmarks-tekniske-universitet-dtu/corrupt_mnist/corrupt_mnist_model:latest"
@@ -102,3 +105,28 @@ async def predict(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/cv_model/")
+async def cv_model(data: UploadFile = File(...)):
+    """
+    Exercise Requirement: Resize image using OpenCV and return the file.
+    """
+    try:
+        # Read image
+        content = await data.read()
+        # Convert string data to numpy array
+        nparr = np.frombuffer(content, np.uint8)
+        # Decode image
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        # Resize to 28x28 (as per context of this project)
+        res = cv2.resize(img, (28, 28))
+        
+        # Save temporary file
+        save_path = "image_resize.jpg"
+        cv2.imwrite(save_path, res)
+        
+        return FileResponse(save_path)
+        
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e))
