@@ -68,4 +68,9 @@ dev = [
     "pytest>=9.0.2",
     "dvc>=3.59.0",
     "dvc-gs>=3.0.1",
+    "types-pyyaml>=6.0.12.20240917",
+    "types-requests>=2.32.0.20240914",
+    "types-simplejson>=3.19.0.20240909",
+    "types-tabulate>=0.9.0.20240106",
+    "types-ujson>=5.10.0.20240502",
 ]

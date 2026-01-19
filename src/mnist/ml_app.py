@@ -66,7 +66,7 @@ async def generate_caption(
     Includes optional hyperparameters for max_length and beam search.
     """
     # 1. Validate file type
-    if not data.content_type.startswith("image/"):
+    if data.content_type is None or not data.content_type.startswith("image/"):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST, 
             detail="File uploaded is not an image."
@@ -75,12 +75,15 @@ async def generate_caption(
     try:
         # 2. Open image using PIL
         i_image = Image.open(data.file)
+        # Use a new variable for the RGB converted image to satisfy Mypy
         if i_image.mode != "RGB":
-            i_image = i_image.convert(mode="RGB")
+            processed_image = i_image.convert(mode="RGB")
+        else:
+            processed_image = i_image
 
         # 3. Pre-process image (convert to tensors)
         pixel_values = app.state.feature_extractor(
-            images=[i_image], 
+            images=[processed_image], 
             return_tensors="pt"
         ).pixel_values
         pixel_values = pixel_values.to(app.state.device)
