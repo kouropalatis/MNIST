@@ -52,13 +52,49 @@ steps:
       '--config=config_final.yaml'
     ]
 
+  # --- API DEPLOYMENT STEPS ---
+
+  # STEP 6: Build the API image
+  # Can run in parallel with Fetch Data/Training Build
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build API Image'
+    waitFor: ['-'] # Start immediately
+    args: [
+      'build', 
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest',
+      '-f', 'dockerfiles/api.dockerfile', 
+      '.'
+    ]
+
+  # STEP 7: Push the API image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push API Image'
+    waitFor: ['Build API Image']
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest']
+
+  # STEP 8: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy to Cloud Run'
+    waitFor: ['Push API Image']
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mnist-api'
+      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=80'
+      - '--set-secrets=WANDB_API_KEY=WANDB_API_KEY:latest'
+
 substitutions:
   # This must be USED in the steps above (see Step 4)
   _REGION: 'europe-west1'
 
 availableSecrets:
   secretManager:
-    - versionName: projects/black-monitor-484210-s3/secrets/WANDB_API_KEY/versions/latest
+    - versionName: projects/$PROJECT_ID/secrets/WANDB_API_KEY/versions/latest
       env: 'WANDB_API_KEY'
 
 options:
