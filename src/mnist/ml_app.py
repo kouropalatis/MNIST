@@ -10,7 +10,7 @@ import os
 from mnist.model import MyAwesomeModel
 
 # Constants
-MODEL_ARTIFACT_PATH = "s250269-danmarks-tekniske-universitet-dtu/wandb-registry-Mnist_models/corrupt_mnist_models:latest"
+MODEL_ARTIFACT_PATH = "s250269-danmarks-tekniske-universitet-dtu/corrupt_mnist/corrupt_mnist_model:latest"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 @asynccontextmanager
