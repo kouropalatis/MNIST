@@ -1,0 +1,40 @@
+steps:
+  # 1. Build the API image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build API Image'
+    args: [
+      'build', 
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest',
+      '-f', 'dockerfiles/api.dockerfile', 
+      '.'
+    ]
+
+  # 2. Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push API Image'
+    waitFor: ['Build API Image']
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest']
+
+  # 3. Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy to Cloud Run'
+    waitFor: ['Push API Image']
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mnist-api'
+      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest'
+      - '--region=europe-west1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=80'
+      - '--set-secrets=WANDB_API_KEY=WANDB_API_KEY:latest'
+
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/WANDB_API_KEY/versions/latest
+      env: 'WANDB_API_KEY'

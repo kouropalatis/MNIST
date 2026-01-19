@@ -2,115 +2,107 @@ import torch
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from contextlib import asynccontextmanager
 from PIL import Image
-from transformers import AutoTokenizer, VisionEncoderDecoderModel, ViTImageProcessor
 from http import HTTPStatus
+import io
+import wandb
+import os
 
-# --- Lifespan Management ---
+from mnist.model import MyAwesomeModel
+
+# Constants
+MODEL_ARTIFACT_PATH = "s250269-danmarks-tekniske-universitet-dtu/wandb-registry-Mnist_models/corrupt_mnist_models:latest"
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Handles startup and shutdown. We load the heavy model into memory ONCE 
-    and attach it to the app state so it's accessible to all routes.
+    Handles startup and shutdown.
+    Downloads the latest model from WandB and loads it into memory.
     """
-    print("🚀 Startup: Loading VisionEncoderDecoderModel (vit-gpt2)...")
-    model_id = "nlpconnect/vit-gpt2-image-captioning"
+    print(f"🚀 Startup: Fetching model from {MODEL_ARTIFACT_PATH}...")
     
     try:
-        # Load the model, processor, and tokenizer
-        app.state.model = VisionEncoderDecoderModel.from_pretrained(model_id)
-        app.state.feature_extractor = ViTImageProcessor.from_pretrained(model_id)
-        app.state.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        # Initialize WandB API (assumes WANDB_API_KEY is set in env)
+        api = wandb.Api()
+        artifact = api.artifact(MODEL_ARTIFACT_PATH)
+        artifact_dir = artifact.download(root="downloaded_model")
+        model_path = os.path.join(artifact_dir, "model.pth")
         
-        # Move to GPU if available, otherwise CPU
-        app.state.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        app.state.model.to(app.state.device)
-        print(f"✅ Model loaded on {app.state.device}")
+        # Load Model
+        model = MyAwesomeModel().to(DEVICE)
+        state_dict = torch.load(model_path, map_location=DEVICE, weights_only=True)
+        model.load_state_dict(state_dict)
+        model.eval()
+        
+        app.state.model = model
+        print(f"✅ Model loaded on {DEVICE}")
         
     except Exception as e:
         print(f"❌ Failed to load model: {e}")
-        raise RuntimeError("Model loading failed")
+        # We don't raise here to allow the app to start (e.g. for health checks), 
+        # but prediction endpoints will fail.
+        app.state.model = None
 
-    yield  # --- App is now running and serving requests ---
+    yield
 
-    print("🛑 Shutdown: Cleaning up GPU/RAM resources...")
-    del app.state.model
-    del app.state.feature_extractor
-    del app.state.tokenizer
+    print("🛑 Shutdown: Cleaning up resources...")
+    if hasattr(app.state, "model"):
+        del app.state.model
 
-# --- FastAPI App Initialization ---
 app = FastAPI(
-    title="Image Captioning Service",
-    description="An API that generates text descriptions for uploaded images using ViT-GPT2.",
+    title="MNIST Classifier API",
+    description="Classifies digit images (0-9) using a trained CNN.",
     lifespan=lifespan
 )
 
-# --- Routes ---
-
 @app.get("/")
 def health_check():
-    """Simple endpoint to verify the API is alive."""
     return {
         "status": HTTPStatus.OK.phrase,
-        "code": HTTPStatus.OK,
-        "message": "Captioning Service is active"
+        "model_loaded": app.state.model is not None,
+        "device": str(DEVICE)
     }
 
-@app.post("/caption/")
-async def generate_caption(
-    data: UploadFile = File(...), 
-    max_length: int = 16, 
-    num_beams: int = 4
-):
+@app.post("/predict/")
+async def predict(file: UploadFile = File(...)):
     """
-    Receives an image and returns a generated caption.
-    Includes optional hyperparameters for max_length and beam search.
+    Upload an image and get the predicted digit.
     """
-    # 1. Validate file type
-    if data.content_type is None or not data.content_type.startswith("image/"):
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, 
-            detail="File uploaded is not an image."
-        )
+    if app.state.model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    if file.content_type is None or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File is not an image")
 
     try:
-        # 2. Open image using PIL
-        i_image = Image.open(data.file)
-        # Use a new variable for the RGB converted image to satisfy Mypy
-        if i_image.mode != "RGB":
-            processed_image = i_image.convert(mode="RGB")
-        else:
-            processed_image = i_image
+        content = await file.read()
+        image = Image.open(io.BytesIO(content))
+        
+        # Convert to grayscale and resize to 28x28 matches training data
+        image = image.convert("L").resize((28, 28))
+        
+        # Transform to tensor [1, 1, 28, 28] and normalize
+        # Assuming training data was normalized (mean=0, std=1 approx for this demo)
+        # We simply convert to tensor here. For exact reproduction, 
+        # we should use the same transforms as data.py
+        import torchvision.transforms.functional as F
+        tensor_img = F.to_tensor(image).unsqueeze(0).to(DEVICE)
+        
+        # Normalize (standard approximation for MNIST)
+        # Verify against your data.py if possible, but this is a safe baseline
+        tensor_img = (tensor_img - 0.1307) / 0.3081
 
-        # 3. Pre-process image (convert to tensors)
-        pixel_values = app.state.feature_extractor(
-            images=[processed_image], 
-            return_tensors="pt"
-        ).pixel_values
-        pixel_values = pixel_values.to(app.state.device)
-
-        # 4. Perform Inference (Generate IDs)
-        output_ids = app.state.model.generate(
-            pixel_values, 
-            max_length=max_length, 
-            num_beams=num_beams
-        )
-
-        # 5. Decode predicted IDs to strings
-        preds = app.state.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
-        captions = [pred.strip() for pred in preds]
+        with torch.no_grad():
+            outputs = app.state.model(tensor_img)
+            probabilities = torch.nn.functional.softmax(outputs, dim=1)
+            predicted_digit = torch.argmax(probabilities, dim=1).item()
+            confidence = probabilities[0][predicted_digit].item()
 
         return {
-            "filename": data.filename,
-            "captions": captions,
-            "config": {
-                "max_length": max_length,
-                "num_beams": num_beams,
-                "device": str(app.state.device)
-            }
+            "prediction": predicted_digit,
+            "confidence": f"{confidence:.2%}",
+            "probabilities": probabilities.tolist()
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Inference failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
