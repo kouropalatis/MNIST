@@ -34,7 +34,7 @@ steps:
       '--region',
       'europe-west1',
       '--display-name',
-      'mnist-gpu-wandb-run',
+      'mnist-train-run',
       '--config',
       '${_VERTEX_TRAIN_CONFIG}',
     ]

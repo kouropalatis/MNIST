@@ -21,15 +21,13 @@ def create_environment(ctx: Context) -> None:
 @task
 def requirements(ctx: Context) -> None:
     """Install project requirements."""
-    ctx.run("pip install -U pip setuptools wheel", echo=True, pty=not WINDOWS)
-    ctx.run("pip install -r requirements.txt", echo=True, pty=not WINDOWS)
-    ctx.run("pip install -e .", echo=True, pty=not WINDOWS)
+    ctx.run("uv sync", echo=True, pty=not WINDOWS)
 
 
 @task(requirements)
 def dev_requirements(ctx: Context) -> None:
     """Install development requirements."""
-    ctx.run('pip install -e .["dev"]', echo=True, pty=not WINDOWS)
+    ctx.run("uv sync", echo=True, pty=not WINDOWS)
 
 
 # Project commands
@@ -48,8 +46,8 @@ def train(ctx: Context) -> None:
 @task
 def test(ctx: Context) -> None:
     """Run tests."""
-    ctx.run("coverage run -m pytest tests/", echo=True, pty=not WINDOWS)
-    ctx.run("coverage report -m -i", echo=True, pty=not WINDOWS)
+    ctx.run("uv run coverage run -m pytest tests/", echo=True, pty=not WINDOWS)
+    ctx.run("uv run coverage report -m -i", echo=True, pty=not WINDOWS)
 
 
 @task

@@ -6,7 +6,7 @@ workerPoolSpecs:
     replicaCount: 1
     containerSpec:
       # Automatically uses the project ID of your active GCP project
-      imageUri: europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest
+      imageUri: europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-train-image:latest
       env:
         - name: WANDB_API_KEY
           value: $WANDB_API_KEY

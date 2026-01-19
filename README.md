@@ -13,8 +13,7 @@ The scripts in `src/mnist/` are designed to work like a factory assembly line. E
 ---
 
 # 1. Install dependencies and project
-pip install -r requirements.txt
-pip install -e .
+uv sync
 
 # 2. Preprocess data (Raw -> Processed)
 python src/mnist/data.py data/raw data/processed

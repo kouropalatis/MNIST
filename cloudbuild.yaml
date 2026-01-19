@@ -1,21 +1,33 @@
+timeout: 1200s
 steps:
-  # STEP 1: Build the Docker image
+  # STEP 1: Fetch Data
+  - name: 'python:3.11-slim'
+    id: 'Fetch Data'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install dvc[gs]
+        dvc pull
+
+  # STEP 2: Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Build Training Image'
+    waitFor: ['Fetch Data']
     args: [
       'build', 
-      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest',
-      '-f', 'dummy/dummy.dockerfile', 
+      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-train-image:latest',
+      '-f', 'dockerfiles/train.dockerfile', 
       '.'
     ]
 
-  # STEP 2: Push the image
+  # STEP 3: Push the image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'Push Image'
     waitFor: ['Build Training Image']
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/dummy-image:latest']
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-train-image:latest']
 
-  # STEP 3: Inject Secrets
+  # STEP 4: Inject Secrets
   - name: "alpine"
     id: "Inject Secrets"
     waitFor: ['Push Image']
@@ -29,14 +41,14 @@ steps:
         envsubst < config.yaml > config_final.yaml
     secretEnv: ['WANDB_API_KEY']
 
-  # STEP 4: Trigger Vertex AI
+  # STEP 5: Trigger Vertex AI
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'Trigger Vertex AI'
     waitFor: ['Inject Secrets']
     args: [
       'ai', 'custom-jobs', 'create',
       '--region=${_REGION}', 
-      '--display-name=mnist-gpu-wandb-run',
+      '--display-name=mnist-train-run',
       '--config=config_final.yaml'
     ]
 
