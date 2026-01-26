@@ -12,7 +12,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train(
     cfg,
-    save_path: str = None,
+    save_path: Optional[str] = None,
 ) -> None:
     """Train model using Hydra config."""
     # Print config to verifying loading
@@ -28,7 +28,7 @@ def train(
 
     run = wandb.init(
         project="corrupt_mnist",
-        config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+        config=dict(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     )
 
     model = MyAwesomeModel().to(DEVICE)

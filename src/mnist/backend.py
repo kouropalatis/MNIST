@@ -134,8 +134,10 @@ async def cv_model(data: UploadFile = File(...)):
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
 
+from typing import Optional
+
 @app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
+def read_item(item_id: int, q: Optional[str] = None):
     """
     Exercise Requirement: Generic items endpoint.
     """
