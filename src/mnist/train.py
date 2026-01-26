@@ -1,4 +1,5 @@
 import os
+from typing import Optional, Dict, Any, cast
 import torch
 import typer
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -28,7 +29,7 @@ def train(
 
     run = wandb.init(
         project="corrupt_mnist",
-        config=dict(OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
+        config=cast(Dict[str, Any], OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True))
     )
 
     model = MyAwesomeModel().to(DEVICE)
@@ -84,8 +85,6 @@ def train(
     run.finish()
 
 app = typer.Typer()
-
-from typing import Optional
 
 @app.command()
 def main(
