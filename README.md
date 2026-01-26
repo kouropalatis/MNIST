@@ -1,28 +1,80 @@
-This project implements a robust Convolutional Neural Network (CNN) to classify images from the "Corrupted MNIST" dataset. Instead of a single messy script, this project uses a modular **MLOps structure** to ensure the code is reproducible, scalable, and easy to maintain.
+# MNIST MLOps Project 🚀
 
-## Project Structure
+![Python](https://img.shields.io/badge/python-3.12-blue) ![Hydra](https://img.shields.io/badge/config-hydra-orange) ![FastAPI](https://img.shields.io/badge/api-fastapi-green) ![Streamlit](https://img.shields.io/badge/frontend-streamlit-red) ![Docker](https://img.shields.io/badge/docker-enabled-blue)
 
-The scripts in `src/mnist/` are designed to work like a factory assembly line. Each script has one specific job:
+A complete MLOps project demonstrating best practices for training, deploying, and serving a PyTorch model for Corrupted MNIST classification.
 
-1.  **`data.py`**: Takes the raw, messy data files and performs "Normalization." It ensures every image has a consistent brightness and contrast so the model can learn faster.
-2.  **`model.py`**: Defines the architecture of our CNN. It uses layers like Convolution and Dropout to "see" patterns in the digits.
-3.  **`train.py`**: Connects the **Brain** to the **Clean Data**. It runs the training loop, calculates errors (loss), and saves the final "learned knowledge" into a file called `model.pth`.
-4.  **`evaluate.py`**: Loads the saved `model.pth` and tests it against images it has never seen before to give us a final Accuracy score.
-5.  **`visualize.py`**: Peeks into the model's "thoughts" using t-SNE. It turns complex data into a 2D map so we can see how the model groups different numbers together.
+## 🌟 Features
+- **Training**: Reproducible training pipelines using **Hydra** and **WandB**.
+- **Backend**: High-performance REST API built with **FastAPI**.
+- **Frontend**: Interactive **Streamlit** UI for model inference.
+- **Cloud**: Automated Docker builds via **Google Cloud Build** and **Artifact Registry**.
+- **Infrastructure**: Dependency management with **uv**.
 
 ---
 
-# 1. Install dependencies and project
+## 🛠️ Installation
+
+Prerequisites: [Python 3.12+](https://www.python.org/) and [uv](https://github.com/astral-sh/uv).
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd MNIST
+
+# Install dependencies (fast!)
 uv sync
+```
 
-# 2. Preprocess data (Raw -> Processed)
-python src/mnist/data.py data/raw data/processed
+---
 
-# 3. Train the model (Saves to models/model.pth)
-python src/mnist/train.py
+## 💻 Usage
 
-# 4. Evaluate performance
-python src/mnist/evaluate.py models/model.pth
+### 1. Train the Model 🧠
+Train the CNN using Hydra configuration (`configs/config.yaml`).
+```bash
+uv run train
+```
+*Experiments are logged to Weights & Biases automatically.*
 
-# 5. Visualize feature embeddings (Saves to reports/figures/embeddings.png)
-python src/mnist/visualize.py models/model.pth
+### 2. Start the Backend API 🔌
+Run the FastAPI server for inference.
+```bash
+uv run uvicorn src.mnist.backend:app --reload
+```
+*Docs available at `http://localhost:8000/docs`.*
+
+### 3. Start the Frontend UI 🖥️
+Run the interactive web app to upload images and get predictions.
+```bash
+streamlit run src/mnist/frontend.py
+```
+
+---
+
+## ☁️ Cloud Deployment
+
+This project is configured for **Google Cloud Platform**.
+
+1. **Build Docker Images**:
+   Uses `cloudbuild.yaml` to build and push images to Artifact Registry (`mlops-repos`).
+   ```bash
+   gcloud builds submit .
+   ```
+
+2. **Artifacts**:
+   - Backend Image: `.../mlops-repos/backend:latest`
+   - Frontend Image: `.../mlops-repos/frontend:latest`
+
+## 📂 Project Structure
+```
+├── configs/             # Hydra configurations
+├── dockerfiles/         # Docker setup for API & Frontend
+├── src/mnist/
+│   ├── backend.py       # FastAPI application
+│   ├── frontend.py      # Streamlit application
+│   ├── train.py         # Training script
+│   └── model.py         # PyTorch Model
+├── .github/workflows/   # CI/CD (Linting & Tests)
+└── pyproject.toml       # Dependencies (uv)
+```

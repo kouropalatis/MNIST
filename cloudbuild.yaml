@@ -1,103 +1,33 @@
-timeout: 1200s
 steps:
-  # STEP 1: Fetch Data
-  - name: 'python:3.11-slim'
-    id: 'Fetch Data'
-    entrypoint: 'bash'
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
     args:
-      - '-c'
-      - |
-        pip install dvc[gs]
-        dvc pull
+      - 'build'
+      - '-t'
+      - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/backend:$COMMIT_SHA'
+      - '-t'
+      - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/backend:latest'
+      - '-f'
+      - 'dockerfiles/backend.dockerfile'
+      - '.'
 
-  # STEP 2: Build the Docker image
+  # Build frontend image
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build Training Image'
-    waitFor: ['Fetch Data']
-    args: [
-      'build', 
-      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-train-image:latest',
-      '-f', 'dockerfiles/train.dockerfile', 
-      '.'
-    ]
-
-  # STEP 3: Push the image
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push Image'
-    waitFor: ['Build Training Image']
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-train-image:latest']
-
-  # STEP 4: Inject Secrets
-  - name: "alpine"
-    id: "Inject Secrets"
-    waitFor: ['Push Image']
-    entrypoint: "sh"
     args:
-      - '-c'
-      - |
-        apk add --no-cache gettext
-        # Use $$ so Cloud Build ignores these during the substitution phase
-        export WANDB_API_KEY=$$WANDB_API_KEY
-        envsubst < config/config.yaml > config_final.yaml
-    secretEnv: ['WANDB_API_KEY']
+      - 'build'
+      - '-t'
+      - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/frontend:$COMMIT_SHA'
+      - '-t'
+      - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/frontend:latest'
+      - '-f'
+      - 'dockerfiles/frontend.dockerfile'
+      - '.'
 
-  # STEP 5: Trigger Vertex AI
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'Trigger Vertex AI'
-    waitFor: ['Inject Secrets']
-    args: [
-      'ai', 'custom-jobs', 'create',
-      '--region=${_REGION}', 
-      '--display-name=mnist-train-run',
-      '--config=config_final.yaml'
-    ]
-
-  # --- API DEPLOYMENT STEPS ---
-
-  # STEP 6: Build the API image
-  # Can run in parallel with Fetch Data/Training Build
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Build API Image'
-    waitFor: ['-'] # Start immediately
-    args: [
-      'build', 
-      '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest',
-      '-f', 'dockerfiles/api.dockerfile', 
-      '.'
-    ]
-
-  # STEP 7: Push the API image
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push API Image'
-    waitFor: ['Build API Image']
-    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest']
-
-  # STEP 8: Deploy to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'Deploy to Cloud Run'
-    waitFor: ['Push API Image']
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'mnist-api'
-      - '--image=europe-west1-docker.pkg.dev/$PROJECT_ID/container/mnist-api-image:latest'
-      - '--region=${_REGION}'
-      - '--platform=managed'
-      - '--allow-unauthenticated'
-      - '--port=80'
-      - '--set-secrets=WANDB_API_KEY=WANDB_API_KEY:latest'
-
-substitutions:
-  # This must be USED in the steps above (see Step 4)
-  _REGION: 'europe-west1'
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/WANDB_API_KEY/versions/latest
-      env: 'WANDB_API_KEY'
+images:
+  - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/backend:$COMMIT_SHA'
+  - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/backend:latest'
+  - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/frontend:$COMMIT_SHA'
+  - 'europe-north2-docker.pkg.dev/$PROJECT_ID/mlops-repos/frontend:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  # This prevents the build from failing if a substitution is defined but not used
-  substitution_option: 'ALLOW_LOOSE'

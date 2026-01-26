@@ -21,4 +21,4 @@ RUN uv sync --frozen --no-cache --no-dev
 EXPOSE 80
 
 # Run the app using uv run
-CMD ["uv", "run", "uvicorn", "ml_app:app", "--host", "0.0.0.0", "--port", "80", "--app-dir", "src/mnist"]
+CMD ["uv", "run", "uvicorn", "backend:app", "--host", "0.0.0.0", "--port", "80", "--app-dir", "src/mnist"]

@@ -1,23 +1,35 @@
 import os
-
 import torch
 import typer
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-
 import wandb
 from mnist.data import corrupt_mnist
 from mnist.model import MyAwesomeModel
+from omegaconf import OmegaConf
+from hydra import compose, initialize
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def train(
+    cfg,
+    save_path: str = None,
+) -> None:
+    """Train model using Hydra config."""
+    # Print config to verifying loading
+    print(f"Training with config:\n{OmegaConf.to_yaml(cfg)}")
+    
+    # Extract params from config
+    epochs = cfg.training.epochs
+    batch_size = cfg.training.batch_size
+    lr = cfg.training.lr
+    seed = cfg.training.get("seed", 42)
+    
+    torch.manual_seed(seed)
 
-def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
-    run = wandb.init(project="corrupt_mnist")
-
-    # Casting to satisfy potential type mismatches from config
-    lr = float(wandb.config.lr)
-    batch_size = int(wandb.config["batch-size"])
-    epochs = int(wandb.config.epochs)
+    run = wandb.init(
+        project="corrupt_mnist",
+        config=OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+    )
 
     model = MyAwesomeModel().to(DEVICE)
     train_set, _ = corrupt_mnist()
@@ -46,16 +58,6 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
 
             if i % 100 == 0:
                 print(f"Epoch {epoch}, iter {i}, loss: {loss.item():.4f}")
-                images = [wandb.Image(im.cpu()) for im in img[:5]]
-
-                # Convert gradient tensor to numpy for Histogram
-                grads = torch.cat([p.grad.flatten() for p in model.parameters() if p.grad is not None])
-                wandb.log(
-                    {
-                        "media/images": images,
-                        "media/gradients": wandb.Histogram(grads.cpu().numpy().tolist()),
-                    }
-                )
 
         epoch_preds = torch.cat(preds_list, 0)
         epoch_targets = torch.cat(targets_list, 0)
@@ -70,17 +72,45 @@ def train(lr: float = 0.001, batch_size: int = 32, epochs: int = 5) -> None:
         wandb.log(metrics)
 
     os.makedirs("models", exist_ok=True)
-    model_path = "models/model.pth"
-    torch.save(model.state_dict(), model_path)
+    actual_save_path = save_path if save_path else "models/model.pth"
+    torch.save(model.state_dict(), actual_save_path)
 
     artifact = wandb.Artifact(name="corrupt_mnist_model", type="model", metadata=metrics)
-    artifact.add_file(model_path)
+    artifact.add_file(actual_save_path)
     run.log_artifact(artifact)
     run.link_artifact(
         artifact=artifact, target_path="wandb-registry-Mnist_models/corrupt_mnist_models", aliases=["latest"]
     )
     run.finish()
 
+app = typer.Typer()
+
+from typing import Optional
+
+@app.command()
+def main(
+    epochs: Optional[int] = None,
+    lr: Optional[float] = None,
+    batch_size: Optional[int] = None,
+):
+    # Load config from configs/config.yaml using Hydra
+    # Pointing to "../../configs" assuming running from project root or src/mnist
+    # We use path relative to this file's location or project root.
+    # The safest is to rely on standard Hydra usage or explicit path.
+    # Ref uses: with initialize(version_base=None, config_path="../../configs"):
+    
+    with initialize(version_base=None, config_path="../../configs"):
+        cfg = compose(config_name="config")
+
+    # Override config with CLI args if provided
+    if epochs:
+        cfg.training.epochs = epochs
+    if lr:
+        cfg.training.lr = lr
+    if batch_size:
+        cfg.training.batch_size = batch_size
+
+    train(cfg)
 
 if __name__ == "__main__":
-    typer.run(train)
+    app()

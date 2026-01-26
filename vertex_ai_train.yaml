@@ -9,8 +9,8 @@ steps:
         apk add --no-cache gettext
         # Use $$ for both the export and the envsubst command to hide them from Cloud Build's scanner
         export WANDB_API_KEY=$$WANDB_API_KEY
-        envsubst '$$WANDB_API_KEY' < config.yaml > config.yaml.tmp
-        mv config.yaml.tmp config.yaml
+        envsubst '$$WANDB_API_KEY' < deployment_spec.yaml > deployment_spec.yaml.tmp
+        mv deployment_spec.yaml.tmp deployment_spec.yaml
     secretEnv: ['WANDB_API_KEY']
 
   # Step 2: Show config (Debugging)
@@ -21,7 +21,7 @@ steps:
     args:
       - '-c'
       - |
-        cat config.yaml
+        cat deployment_spec.yaml
 
   # Step 3: Launch the Vertex AI Custom Job
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -40,7 +40,7 @@ steps:
     ]
 
 substitutions:
-  _VERTEX_TRAIN_CONFIG: 'config.yaml'
+  _VERTEX_TRAIN_CONFIG: 'deployment_spec.yaml'
 
 availableSecrets:
   secretManager:

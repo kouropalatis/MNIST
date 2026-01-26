@@ -119,6 +119,9 @@ async def cv_model(data: UploadFile = File(...)):
         # Decode image
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
+        if img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+        
         # Resize to 28x28 (as per context of this project)
         res = cv2.resize(img, (28, 28))
         
@@ -130,3 +133,10 @@ async def cv_model(data: UploadFile = File(...)):
         
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str = None):
+    """
+    Exercise Requirement: Generic items endpoint.
+    """
+    return {"item_id": item_id, "q": q}
