@@ -1,80 +1,62 @@
-# MNIST MLOps Project 🚀
+# MNIST MLOps
 
-![Python](https://img.shields.io/badge/python-3.12-blue) ![Hydra](https://img.shields.io/badge/config-hydra-orange) ![FastAPI](https://img.shields.io/badge/api-fastapi-green) ![Streamlit](https://img.shields.io/badge/frontend-streamlit-red) ![Docker](https://img.shields.io/badge/docker-enabled-blue)
+This project is a production-ready MLOps implementation for training and deploying a computer vision model (CNN) to classify images from the Corrupted MNIST dataset.
 
-A complete MLOps project demonstrating best practices for training, deploying, and serving a PyTorch model for Corrupted MNIST classification.
+## How It Works
 
-## 🌟 Features
-- **Training**: Reproducible training pipelines using **Hydra** and **WandB**.
-- **Backend**: High-performance REST API built with **FastAPI**.
-- **Frontend**: Interactive **Streamlit** UI for model inference.
-- **Cloud**: Automated Docker builds via **Google Cloud Build** and **Artifact Registry**.
-- **Infrastructure**: Dependency management with **uv**.
+![Project Concept](docs/project_concept.png)
 
----
+1.  **Upload**: You upload an image of a handwritten digit (like a messy '5').
+2.  **Process**: Our AI model (running in the backend) analyzes the pixels.
+3.  **Result**: The system tells you what number it sees!
 
-## 🛠️ Installation
+## Technical Architecture
 
-Prerequisites: [Python 3.12+](https://www.python.org/) and [uv](https://github.com/astral-sh/uv).
+![System Architecture](docs/architecture.png)
 
+The system consists of three main technical stages:
+1.  **Training**: A reproducible pipeline using **Hydra** for configuration and **PyTorch** for model training. Experiment metrics are tracked in **Weights & Biases**.
+2.  **Deployment**: The trained model is served via a **FastAPI** backend. A **Streamlit** frontend provides a user interface for uploading images and viewing predictions.
+3.  **Infrastructure**: The entire application is Dockerized. Google Cloud Build automates the creation of images, which are stored in the Artifact Registry.
+
+## Quick Start
+### 1. Install Dependencies
+This project uses `uv` for fast dependency management.
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd MNIST
-
-# Install dependencies (fast!)
 uv sync
 ```
 
----
-
-## 💻 Usage
-
-### 1. Train the Model 🧠
-Train the CNN using Hydra configuration (`configs/config.yaml`).
+### 2. Train the Model
+Run the training script (uses `src/mnist/train.py`):
 ```bash
 uv run train
 ```
-*Experiments are logged to Weights & Biases automatically.*
+Configuration can be modified in `configs/config.yaml`.
 
-### 2. Start the Backend API 🔌
-Run the FastAPI server for inference.
+### 3. Run the Application
+Start the backend API and frontend UI locally:
+
+**Backend (API):**
 ```bash
 uv run uvicorn src.mnist.backend:app --reload
 ```
-*Docs available at `http://localhost:8000/docs`.*
+The API will be available at `http://localhost:8000`.
 
-### 3. Start the Frontend UI 🖥️
-Run the interactive web app to upload images and get predictions.
+**Frontend (UI):**
 ```bash
 streamlit run src/mnist/frontend.py
 ```
+The UI will open in your browser at `http://localhost:8501`.
 
----
-
-## ☁️ Cloud Deployment
-
-This project is configured for **Google Cloud Platform**.
-
-1. **Build Docker Images**:
-   Uses `cloudbuild.yaml` to build and push images to Artifact Registry (`mlops-repos`).
-   ```bash
-   gcloud builds submit .
-   ```
-
-2. **Artifacts**:
-   - Backend Image: `.../mlops-repos/backend:latest`
-   - Frontend Image: `.../mlops-repos/frontend:latest`
-
-## 📂 Project Structure
+## Cloud Build
+To build and push the Docker images to Google Cloud Artifact Registry:
+```bash
+gcloud builds submit .
 ```
-├── configs/             # Hydra configurations
-├── dockerfiles/         # Docker setup for API & Frontend
-├── src/mnist/
-│   ├── backend.py       # FastAPI application
-│   ├── frontend.py      # Streamlit application
-│   ├── train.py         # Training script
-│   └── model.py         # PyTorch Model
-├── .github/workflows/   # CI/CD (Linting & Tests)
-└── pyproject.toml       # Dependencies (uv)
-```
+This prepares the images for deployment (e.g., to Cloud Run or Kubernetes).
+
+## Project Structure
+- `src/mnist/`: Core source code (Backend, Frontend, Training, Model).
+- `configs/`: Hydra configuration files.
+- `dockerfiles/`: Docker definitions for the services.
+- `.github/workflows/`: CI/CD pipelines for linting and testing.
