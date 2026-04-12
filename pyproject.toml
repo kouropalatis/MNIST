@@ -76,7 +76,7 @@ train = "mnist.train:app"
 [dependency-groups]
 dev = [
     "coverage>=7.13.1",
-    "invoke>=2.2.0",
+    "invoke>=3.0.3",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.1",
     "mkdocstrings-python>=1.16.10",
